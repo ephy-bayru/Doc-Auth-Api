@@ -1,0 +1,67 @@
+# Compiled output and Build files
+/dist
+/build
+/out-tsc/
+/node_modules
+
+# TypeScript compiled output
+*.tsbuildinfo
+*.js
+*.d.ts
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode specific
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Environment variables and configuration
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependency directories
+jspm_packages/
+
+# Optional caches and build outputs
+.npm
+.eslintcache
+*.tgz
+.yarn-integrity
+.cache
+.next/
+.nuxt
+dist/
+.cache/
+public/
+.vuepress/dist
+.serverless/
