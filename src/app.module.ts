@@ -1,20 +1,30 @@
 import { Module } from '@nestjs/common';
-import { CacheModule } from '@nestjs/cache-manager';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
-import { CacheService } from './common/services/cache.service';
 import { LoggingInterceptor } from './common/utils/logging.interceptor';
-import { LoggerService } from './common/services/logger.service';
+import { DatabaseModule } from './core/database/database.module';
+import { CommonModule } from './common/common.module';
+import { HealthModule } from './modules/health/health.module';
+
 @Module({
   imports: [
-    CacheModule.register(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    HealthModule,
+    CommonModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
-  providers: [AppService, LoggerService, CacheService, LoggingInterceptor],
-  exports: [AppService, LoggerService, CacheService, LoggingInterceptor],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+  ],
+  exports: [],
 })
 export class AppModule {}

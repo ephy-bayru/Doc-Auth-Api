@@ -1,7 +1,7 @@
 import { DocumentBuilder, SwaggerCustomOptions } from '@nestjs/swagger';
 
 export const swaggerConfig = new DocumentBuilder()
-  .setTitle('Blockchain-based Document and Certificate Authorization App')
+  .setTitle('Doc-Auth-API')
   .setDescription(
     `This application leverages blockchain technology to offer a secure and efficient platform for document and certificate authorization. It's designed for users and organizations to manage digital certificates and documents with ease, employing the robust capabilities of NestJS for scalable server-side applications.
 
