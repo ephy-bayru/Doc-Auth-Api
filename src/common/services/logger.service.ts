@@ -1,5 +1,6 @@
 import { Injectable, ConsoleLogger, Scope } from '@nestjs/common';
 import { serialize } from '../utils/serialization-utils';
+import { ConfigService } from '@nestjs/config';
 
 type LogLevel = 'log' | 'warn' | 'error' | 'debug' | 'verbose';
 
@@ -87,5 +88,28 @@ export class LoggerService<T = any> extends ConsoleLogger {
 
   logVerbose(message: string, data?: Partial<T>) {
     this.logMessage('verbose', message, data);
+  }
+
+  determineLoggingOptions(
+    configService: ConfigService,
+  ):
+    | boolean
+    | ('query' | 'error' | 'schema' | 'warn' | 'info' | 'log' | 'migration')[] {
+    const logging = configService.get<string>('DB_LOGGING');
+    if (!logging || logging === 'false') {
+      return false;
+    } else if (logging === 'true') {
+      return ['query', 'error', 'schema', 'warn', 'info', 'log', 'migration'];
+    } else {
+      return logging.split(',') as (
+        | 'query'
+        | 'error'
+        | 'schema'
+        | 'warn'
+        | 'info'
+        | 'log'
+        | 'migration'
+      )[];
+    }
   }
 }
