@@ -3,27 +3,27 @@ import {
   HealthCheck,
   HealthCheckService,
   HttpHealthIndicator,
-  SequelizeHealthIndicator,
+  TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CustomHealthIndicator } from './indicators/custom.health';
 import { HealthCheckDocs } from './documentation/health.controller.documentation';
 import { ConfigService } from '@nestjs/config';
-// import { AuthGuard } from '@nestjs/passport';
+// import { JwtAuthGuard } from 'path/to/jwt-auth.guard';
 
 @ApiTags('Health')
 @Controller({ path: 'health', version: '1' })
 export class HealthController {
   constructor(
     private health: HealthCheckService,
-    private db: SequelizeHealthIndicator,
+    private db: TypeOrmHealthIndicator,
     private http: HttpHealthIndicator,
     private customIndicator: CustomHealthIndicator,
     private configService: ConfigService,
   ) {}
 
   @Get()
-  // @UseGuards(AuthGuard('jwt'))
+  // @UseGuards(JwtAuthGuard)
   @HealthCheck()
   @HealthCheckDocs()
   @ApiOperation({ summary: 'Check application health' })
