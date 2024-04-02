@@ -7,6 +7,7 @@ import { LoggingInterceptor } from './common/utils/logging.interceptor';
 import { DatabaseModule } from './core/database/database.module';
 import { CommonModule } from './common/common.module';
 import { HealthModule } from './modules/health/health.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { HealthModule } from './modules/health/health.module';
     HealthModule,
     CommonModule,
     DatabaseModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [
