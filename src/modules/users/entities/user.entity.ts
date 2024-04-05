@@ -1,23 +1,16 @@
-import { Admin } from 'src/modules/Admin/entities/admins.entity';
-import { Certificate } from 'src/modules/Certificates/entities/certificate.entity';
-import { Document } from 'src/modules/Documents/entities/document.entity';
-import { Organization } from 'src/modules/Organizations/entities/organization.entity';
-import { Role } from 'src/modules/Roles/entities/role.entity';
-import { Notification } from 'src/modules/Notifications/entities/notifications.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
-  OneToMany,
-  JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  OneToOne,
 } from 'typeorm';
+import { Address } from './address.entity';
 
 @Entity({ name: 'users' })
-export class User {
+export class Users {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -38,9 +31,6 @@ export class User {
   phoneNumber?: string;
 
   @Column({ nullable: true })
-  address?: string;
-
-  @Column({ nullable: true })
   ethereumAddress?: string; // Address used for blockchain transactions
 
   @CreateDateColumn()
@@ -49,24 +39,9 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToOne(() => Role, (role) => role.users)
-  @JoinColumn({ name: 'roleId' })
-  role: Role;
-
-  @OneToMany(() => Document, (document) => document.owner)
-  documents: Document[];
-
-  @OneToMany(() => Certificate, (certificate) => certificate.owner)
-  certificates: Certificate[];
-
-  @ManyToOne(() => Organization, (organization) => organization.users, {
-    nullable: true,
+  @OneToOne(() => Address, (address) => address.user, {
+    cascade: true,
+    eager: true,
   })
-  organization?: Organization;
-
-  @ManyToOne(() => Admin, (admin) => admin.users, { nullable: true })
-  admin?: Admin;
-
-  @OneToMany(() => Notification, (notification) => notification.user)
-  notifications: Notification[];
+  address: Address;
 }
