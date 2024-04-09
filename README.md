@@ -45,7 +45,7 @@ This application leverages blockchain technology to provide a secure and efficie
 ### Backend
 
 - NestJS with Node.js
-- Implementation of CQRS and Repository patterns
+- Implementation of Repository pattern
 - Hypermedia API
 - Postgresql for database management
 - Adherence to TypeScript and Node.js best practices
