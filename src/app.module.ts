@@ -8,11 +8,16 @@ import { DatabaseModule } from './core/database/database.module';
 import { CommonModule } from './common/common.module';
 import { HealthModule } from './modules/health/health.module';
 import { UsersModule } from './modules/users/users.module';
+import configuration from './config/configuration';
+import { CustomConfigService } from './config/services/config.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      load: [configuration],
+      envFilePath: `.env.${process.env.NODE_ENV}`,
+      expandVariables: true,
     }),
     HealthModule,
     CommonModule,
@@ -26,7 +31,8 @@ import { UsersModule } from './modules/users/users.module';
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
     },
+    CustomConfigService,
   ],
-  exports: [],
+  exports: [CustomConfigService],
 })
 export class AppModule {}
