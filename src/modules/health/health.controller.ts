@@ -1,13 +1,12 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
 import {
   HealthCheck,
   HealthCheckService,
   HttpHealthIndicator,
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CustomHealthIndicator } from './indicators/custom.health';
-import { HealthCheckDocs } from './documentation/health.controller.documentation';
 import { ConfigService } from '@nestjs/config';
 // import { JwtAuthGuard } from 'path/to/jwt-auth.guard';
 
@@ -25,23 +24,35 @@ export class HealthController {
   @Get()
   // @UseGuards(JwtAuthGuard)
   @HealthCheck()
-  @HealthCheckDocs()
   @ApiOperation({ summary: 'Check application health' })
+  @ApiResponse({ status: 200, description: 'Health check passed' })
+  @ApiResponse({ status: 503, description: 'Health check failed' })
   check() {
-    return this.health.check([
-      () =>
-        this.db.pingCheck('database', {
-          timeout: this.configService.get<number>('DB_HEALTH_TIMEOUT', 3000),
-        }),
-      () =>
-        this.http.pingCheck(
-          'externalService',
-          this.configService.get<string>(
-            'EXTERNAL_SERVICE_URL',
-            'https://ephrembayru.com/',
+    return this.health
+      .check([
+        () =>
+          this.db.pingCheck('database', {
+            timeout: this.configService.get<number>('DB_HEALTH_TIMEOUT', 5000),
+          }),
+        () =>
+          this.http.pingCheck(
+            'externalService',
+            this.configService.get<string>(
+              'EXTERNAL_SERVICE_URL',
+              'https://ephrembayru.com/',
+            ),
           ),
-        ),
-      () => this.customIndicator.isHealthy('customService'),
-    ]);
+        () => this.customIndicator.isHealthy('customService'),
+      ])
+      .catch((error) => {
+        throw new HttpException(
+          {
+            status: HttpStatus.SERVICE_UNAVAILABLE,
+            error: 'One or more health checks failed',
+            details: error.response,
+          },
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      });
   }
 }
