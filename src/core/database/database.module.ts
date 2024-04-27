@@ -1,21 +1,28 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { DatabaseService } from './database.service';
-import { LoggerService } from 'src/common/services/logger.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { DatabaseLoggerService } from '../services/database-logger.service';
+import { DatabaseService } from '../services/database.service';
 import { typeormConfig } from 'src/config/typeorm.config';
 
+@Global()
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      inject: [ConfigService, LoggerService],
+      inject: [ConfigService, DatabaseLoggerService],
       useFactory: async (
         configService: ConfigService,
-        loggerService: LoggerService,
-      ) => typeormConfig(configService, loggerService),
+        databaseLoggerService: DatabaseLoggerService,
+      ) => ({
+        ...typeormConfig(configService, databaseLoggerService),
+      }),
     }),
   ],
-  providers: [DatabaseService],
+  providers: [DatabaseService, DatabaseLoggerService],
+  exports: [DatabaseService, DatabaseLoggerService],
 })
 export class DatabaseModule {}
