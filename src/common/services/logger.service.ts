@@ -11,15 +11,15 @@ interface LogMetadata {
 @Injectable({ scope: Scope.TRANSIENT })
 export class LoggerService extends ConsoleLogger {
   private winstonLogger: winston.Logger;
+  private useNestLogger: boolean;
 
   constructor(private configService: ConfigService) {
     super(configService.get('APP_CONTEXT', 'Application'));
+    // Determine whether to use NestJS's internal logger based on environment variable
+    this.useNestLogger = this.configService.get('NEST_LOG') === 'on';
     this.initLogger();
   }
 
-  /**
-   * Initializes the logger with configurations based on the environment.
-   */
   private initLogger() {
     const environment = this.configService.get<string>(
       'NODE_ENV',
@@ -40,14 +40,10 @@ export class LoggerService extends ConsoleLogger {
     });
   }
 
-  /**
-   * Configures the transports for Winston logger based on the environment.
-   */
   private setupTransports(environment: string): winston.transport[] {
     const transports: winston.transport[] = [
       new winston.transports.Console({
         format: winston.format.combine(
-          winston.format.colorize({ all: true }),
           winston.format.simple(),
           nestWinstonModuleUtilities.format.nestLike(
             this.configService.get('APP_CONTEXT', 'Application'),
@@ -74,55 +70,53 @@ export class LoggerService extends ConsoleLogger {
     return transports;
   }
 
-  /**
-   * Allows dynamic adjustment of the logger's level.
-   */
-  setLogLevel(level: string) {
-    this.winstonLogger.level = level;
-  }
-
-  // Standardized log method with metadata handling
-  private logWithMetadata(
-    level: string,
-    message: string,
-    context: string,
-    meta?: LogMetadata,
-  ) {
-    const logObject = { context, ...meta };
-    this.winstonLogger.log(level, message, logObject);
-  }
-
-  log(message: string, context: string, meta?: LogMetadata) {
-    super.log(message, context);
-    this.logWithMetadata('info', message, context, meta);
+  log(message: string, context?: string, meta?: LogMetadata) {
+    if (this.useNestLogger) {
+      super.log(message, context);
+    } else {
+      this.winstonLogger.info(message, { context, ...meta });
+    }
   }
 
   error(
     message: string,
-    trace: string | Error,
+    trace?: unknown,
     context?: string,
     meta?: LogMetadata,
   ) {
-    const traceMessage = trace instanceof Error ? trace.stack : trace;
-    super.error(message, traceMessage, context);
-    this.logWithMetadata('error', message, context, {
-      trace: traceMessage,
-      ...meta,
-    });
+    if (this.useNestLogger) {
+      super.error(message, trace as string, context);
+    } else {
+      const traceMessage = trace instanceof Error ? trace.stack : trace;
+      this.winstonLogger.error(message, {
+        trace: traceMessage as string,
+        context,
+        ...meta,
+      });
+    }
   }
 
-  warn(message: string, context: string, meta?: LogMetadata) {
-    super.warn(message, context);
-    this.logWithMetadata('warn', message, context, meta);
+  warn(message: string, context?: string, meta?: LogMetadata) {
+    if (this.useNestLogger) {
+      super.warn(message, context);
+    } else {
+      this.winstonLogger.warn(message, { context, ...meta });
+    }
   }
 
-  debug(message: string, context: string, meta?: LogMetadata) {
-    super.debug(message, context);
-    this.logWithMetadata('debug', message, context, meta);
+  debug(message: string, context?: string, meta?: LogMetadata) {
+    if (this.useNestLogger) {
+      super.debug(message, context);
+    } else {
+      this.winstonLogger.debug(message, { context, ...meta });
+    }
   }
 
-  verbose(message: string, context: string, meta?: LogMetadata) {
-    super.verbose(message, context);
-    this.logWithMetadata('verbose', message, context, meta);
+  verbose(message: string, context?: string, meta?: LogMetadata) {
+    if (this.useNestLogger) {
+      super.verbose(message, context);
+    } else {
+      this.winstonLogger.verbose(message, { context, ...meta });
+    }
   }
 }
