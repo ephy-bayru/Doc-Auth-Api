@@ -1,115 +1,128 @@
 import { Injectable, ConsoleLogger, Scope } from '@nestjs/common';
-import { serialize } from '../utils/serialization-utils';
 import { ConfigService } from '@nestjs/config';
+import * as winston from 'winston';
+import * as DailyRotateFile from 'winston-daily-rotate-file';
+import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
 
-type LogLevel = 'log' | 'warn' | 'error' | 'debug' | 'verbose';
+interface LogMetadata {
+  [key: string]: any;
+}
 
 @Injectable({ scope: Scope.TRANSIENT })
-export class LoggerService<T = any> extends ConsoleLogger {
-  private logLevelPriority = {
-    error: 0,
-    warn: 1,
-    log: 2,
-    debug: 3,
-    verbose: 4,
-  };
+export class LoggerService extends ConsoleLogger {
+  private winstonLogger: winston.Logger;
 
-  private currentLogLevel: LogLevel;
-
-  constructor(context?: string) {
-    super(context);
-    this.currentLogLevel = this.getLogLevel();
+  constructor(private configService: ConfigService) {
+    super(configService.get('APP_CONTEXT', 'Application'));
+    this.initLogger();
   }
 
-  private getLogLevel(): LogLevel {
-    const level = process.env.LOG_LEVEL as LogLevel;
-    return this.logLevelPriority.hasOwnProperty(level) ? level : 'log';
+  /**
+   * Initializes the logger with configurations based on the environment.
+   */
+  private initLogger() {
+    const environment = this.configService.get<string>(
+      'NODE_ENV',
+      'development',
+    );
+    const logLevel = this.configService.get<string>('LOG_LEVEL', 'info');
+
+    this.winstonLogger = winston.createLogger({
+      level: logLevel,
+      format: winston.format.combine(
+        winston.format.colorize({ all: true }),
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.errors({ stack: true }),
+        winston.format.json(),
+      ),
+      defaultMeta: { service: 'user-service', environment },
+      transports: this.setupTransports(environment),
+    });
   }
 
-  public setLogLevel(level: LogLevel) {
-    if (this.logLevelPriority.hasOwnProperty(level)) {
-      this.currentLogLevel = level;
-      this.log(`Log level set to ${level}`, this.context);
-    } else {
-      this.error(
-        `Attempted to set an unsupported log level: ${level}`,
-        '',
-        this.context,
+  /**
+   * Configures the transports for Winston logger based on the environment.
+   */
+  private setupTransports(environment: string): winston.transport[] {
+    const transports: winston.transport[] = [
+      new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.colorize({ all: true }),
+          winston.format.simple(),
+          nestWinstonModuleUtilities.format.nestLike(
+            this.configService.get('APP_CONTEXT', 'Application'),
+            {
+              prettyPrint: true,
+            },
+          ),
+        ),
+      }),
+    ];
+
+    if (environment !== 'development') {
+      transports.push(
+        new DailyRotateFile({
+          filename: 'logs/application-%DATE%.log',
+          datePattern: 'YYYY-MM-DD',
+          zippedArchive: true,
+          maxSize: '20m',
+          maxFiles: '14d',
+        }),
       );
     }
+
+    return transports;
   }
 
-  private shouldLog(level: LogLevel): boolean {
-    return (
-      this.logLevelPriority[level] <=
-      this.logLevelPriority[this.currentLogLevel]
-    );
+  /**
+   * Allows dynamic adjustment of the logger's level.
+   */
+  setLogLevel(level: string) {
+    this.winstonLogger.level = level;
   }
 
-  private formatLogMessage(
-    level: LogLevel,
+  // Standardized log method with metadata handling
+  private logWithMetadata(
+    level: string,
     message: string,
-    data?: Partial<T>,
-  ): string {
-    const timestamp = new Date().toISOString();
-    const serializedData = data ? ` - Data: ${serialize(data)}` : '';
-    return `[${timestamp}] [${level.toUpperCase()}] [${
-      this.context
-    }] ${message}${serializedData}`;
-  }
-
-  private logMessage(
-    level: LogLevel,
-    message: string,
-    data?: Partial<T>,
-    trace?: string,
+    context: string,
+    meta?: LogMetadata,
   ) {
-    if (!this.shouldLog(level)) return;
-
-    const formattedMessage = this.formatLogMessage(level, message, data);
-    super[level](formattedMessage, trace);
+    const logObject = { context, ...meta };
+    this.winstonLogger.log(level, message, logObject);
   }
 
-  logInfo(message: string, data?: Partial<T>) {
-    this.logMessage('log', message, data);
+  log(message: string, context: string, meta?: LogMetadata) {
+    super.log(message, context);
+    this.logWithMetadata('info', message, context, meta);
   }
 
-  logWarn(message: string, data?: Partial<T>) {
-    this.logMessage('warn', message, data);
+  error(
+    message: string,
+    trace: string | Error,
+    context?: string,
+    meta?: LogMetadata,
+  ) {
+    const traceMessage = trace instanceof Error ? trace.stack : trace;
+    super.error(message, traceMessage, context);
+    this.logWithMetadata('error', message, context, {
+      trace: traceMessage,
+      ...meta,
+    });
   }
 
-  logError(message: string, data?: Partial<T>, trace?: string) {
-    this.logMessage('error', message, data, trace);
+  warn(message: string, context: string, meta?: LogMetadata) {
+    super.warn(message, context);
+    this.logWithMetadata('warn', message, context, meta);
   }
 
-  logDebug(message: string, data?: Partial<T>) {
-    this.logMessage('debug', message, data);
+  debug(message: string, context: string, meta?: LogMetadata) {
+    super.debug(message, context);
+    this.logWithMetadata('debug', message, context, meta);
   }
 
-  logVerbose(message: string, data?: Partial<T>) {
-    this.logMessage('verbose', message, data);
-  }
-
-  determineLoggingOptions(
-    configService: ConfigService,
-  ):
-    | boolean
-    | ('query' | 'error' | 'schema' | 'warn' | 'info' | 'log' | 'migration')[] {
-    const logging = configService.get<string>('DB_LOGGING');
-    if (!logging || logging === 'false') {
-      return false;
-    } else if (logging === 'true') {
-      return ['query', 'error', 'schema', 'warn', 'info', 'log', 'migration'];
-    } else {
-      return logging.split(',') as (
-        | 'query'
-        | 'error'
-        | 'schema'
-        | 'warn'
-        | 'info'
-        | 'log'
-        | 'migration'
-      )[];
-    }
+  verbose(message: string, context: string, meta?: LogMetadata) {
+    super.verbose(message, context);
+    this.logWithMetadata('verbose', message, context, meta);
   }
 }
