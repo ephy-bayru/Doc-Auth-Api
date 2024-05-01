@@ -15,7 +15,6 @@ export class LoggerService extends ConsoleLogger {
 
   constructor(private configService: ConfigService) {
     super(configService.get('APP_CONTEXT', 'Application'));
-    // Determine whether to use NestJS's internal logger based on environment variable
     this.useNestLogger = this.configService.get('NEST_LOG') === 'on';
     this.initLogger();
   }
@@ -35,7 +34,7 @@ export class LoggerService extends ConsoleLogger {
         winston.format.errors({ stack: true }),
         winston.format.json(),
       ),
-      defaultMeta: { service: 'user-service', environment },
+      defaultMeta: { service: 'log-service', environment },
       transports: this.setupTransports(environment),
     });
   }
