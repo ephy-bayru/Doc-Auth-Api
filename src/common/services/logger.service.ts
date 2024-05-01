@@ -34,7 +34,7 @@ export class LoggerService extends ConsoleLogger {
         winston.format.errors({ stack: true }),
         winston.format.json(),
       ),
-      defaultMeta: { service: 'log-service', environment },
+      defaultMeta: { service: 'logger', environment },
       transports: this.setupTransports(environment),
     });
   }
