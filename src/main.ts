@@ -7,35 +7,31 @@ import { SwaggerModule } from '@nestjs/swagger';
 import { swaggerConfig, swaggerCustomOptions } from './config/swagger.config';
 
 async function bootstrap() {
-  // Create NestJS application instance
   const app = await NestFactory.create(AppModule);
-
-  // Instantiate services
   const configService = app.get(ConfigService);
-  const logger = new LoggerService();
+  const logger = new LoggerService(configService);
   app.useLogger(logger);
 
-  // Configure global API prefix
   app.setGlobalPrefix('api');
-
-  // Configure API versioning
-  const defaultApiVersion = configService.get<string>(
-    'API_DEFAULT_VERSION',
-    '1',
-  );
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: defaultApiVersion,
+    defaultVersion: configService.get<string>('API_DEFAULT_VERSION', '1'),
   });
 
-  // Setup Swagger for API documentation
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document, swaggerCustomOptions);
+  SwaggerModule.setup(
+    'api/docs',
+    app,
+    SwaggerModule.createDocument(app, swaggerConfig),
+    swaggerCustomOptions,
+  );
 
-  // Start the application
-  const port = configService.get('PORT', 3000);
+  const port = configService.get<number>('PORT', 3000);
   await app.listen(port);
-  logger.log(`Application is running on: ${await app.getUrl()}`);
+  logger.log('Application is running on:', `http://localhost:${port}`, {
+    service: 'MainApplication',
+    action: 'start',
+    port,
+  });
 }
 
 bootstrap();
