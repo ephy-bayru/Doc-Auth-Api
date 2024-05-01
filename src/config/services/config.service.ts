@@ -64,4 +64,8 @@ export class CustomConfigService {
       entities: this.typeormEntities,
     };
   }
+
+  getApiDefaultVersion() {
+    return this.configService.get<string>('API_DEFAULT_VERSION', '1');
+  }
 }
