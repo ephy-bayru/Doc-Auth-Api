@@ -5,6 +5,7 @@ import { LoggerService } from './common/services/logger.service';
 import { VersioningType } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
 import { swaggerConfig, swaggerCustomOptions } from './config/swagger.config';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,6 +13,7 @@ async function bootstrap() {
   const logger = new LoggerService(configService);
   app.useLogger(logger);
 
+  app.useGlobalFilters(new HttpExceptionFilter(logger));
   app.setGlobalPrefix('api');
   app.enableVersioning({
     type: VersioningType.URI,
