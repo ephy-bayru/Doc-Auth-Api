@@ -23,18 +23,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    let message = 'Internal server error';
-    if (exception instanceof HttpException) {
-      const responseContent = exception.getResponse();
-      if (
-        typeof responseContent === 'object' &&
-        responseContent.hasOwnProperty('message')
-      ) {
-        message = responseContent['message'];
-      } else if (typeof responseContent === 'string') {
-        message = responseContent;
-      }
-    }
+    const message = this.getUserFriendlyMessage(exception);
 
     const errorResponse = {
       statusCode: status,
@@ -49,18 +38,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     this.logger.error(
       'Exception caught in HttpExceptionFilter',
-      exception instanceof Error ? exception.stack : '',
+      { exception, response: errorResponse },
       'HttpExceptionFilter',
-      {
-        ip: request.ip,
-        method: request.method,
-        url: request.url,
-        body: request.body,
-        status,
-        exception: errorResponse,
-      },
     );
 
     response.status(status).json(errorResponse);
+  }
+
+  private getUserFriendlyMessage(exception: unknown): string {
+    if (exception instanceof HttpException) {
+      const responseContent = exception.getResponse();
+      return typeof responseContent === 'object' && responseContent['message']
+        ? responseContent['message']
+        : exception.message;
+    }
+    return 'An unexpected error occurred';
   }
 }
