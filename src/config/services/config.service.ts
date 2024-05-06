@@ -15,29 +15,44 @@ export class CustomConfigService {
   private typeormMigrationsRun: boolean;
   private typeormMigrations: string;
   private typeormEntities: string;
+  private requestTimeoutMs: number;
 
   constructor(private configService: ConfigService) {
-    this.dbHost = this.configService.get<string>('DB_HOST');
-    this.dbPort = this.configService.get<number>('DB_PORT');
-    this.dbUsername = this.configService.get<string>('DB_USERNAME');
-    this.dbPassword = this.configService.get<string>('DB_PASSWORD');
-    this.dbName = this.configService.get<string>('DB_NAME');
+    this.loadConfigurations();
+  }
+
+  private loadConfigurations() {
+    this.dbHost = this.configService.get<string>('DB_HOST', 'localhost');
+    this.dbPort = this.configService.get<number>('DB_PORT', 5432);
+    this.dbUsername = this.configService.get<string>('DB_USERNAME', 'postgres');
+    this.dbPassword = this.configService.get<string>('DB_PASSWORD', 'password');
+    this.dbName = this.configService.get<string>('DB_NAME', 'doc-auth-dev');
     this.dbSSL = this.configService.get<boolean>('DB_SSL', false);
     this.dbSSLRejectUnauthorized = this.configService.get<boolean>(
       'DB_SSL_REJECT_UNAUTHORIZED',
-      false,
+      true,
     );
     this.externalServiceUrl = this.configService.get<string>(
       'EXTERNAL_SERVICE_URL',
+      'https://ephrembayru.com',
     );
     this.typeormSync = this.configService.get<boolean>('TYPEORM_SYNC', false);
     this.typeormMigrationsRun = this.configService.get<boolean>(
       'TYPEORM_MIGRATIONS_RUN',
-      true,
+      false,
     );
-    this.typeormMigrations =
-      this.configService.get<string>('TYPEORM_MIGRATIONS');
-    this.typeormEntities = this.configService.get<string>('TYPEORM_ENTITIES');
+    this.typeormMigrations = this.configService.get<string>(
+      'TYPEORM_MIGRATIONS',
+      'dist/migrations/*{.ts,.js}',
+    );
+    this.typeormEntities = this.configService.get<string>(
+      'TYPEORM_ENTITIES',
+      'dist/**/*.entity{.ts,.js}',
+    );
+    this.requestTimeoutMs = this.configService.get<number>(
+      'REQUEST_TIMEOUT_MS',
+      5000,
+    );
   }
 
   getDatabaseConfig() {
@@ -47,25 +62,30 @@ export class CustomConfigService {
       username: this.dbUsername,
       password: this.dbPassword,
       database: this.dbName,
-      ssl: this.dbSSL,
-      sslRejectUnauthorized: this.dbSSLRejectUnauthorized,
+      ssl: this.dbSSL
+        ? { rejectUnauthorized: this.dbSSLRejectUnauthorized }
+        : undefined,
     };
   }
 
-  getExternalServiceUrl() {
+  getExternalServiceUrl(): string {
     return this.externalServiceUrl;
   }
 
   getTypeormConfig() {
     return {
-      sync: this.typeormSync,
+      synchronize: this.typeormSync,
       migrationsRun: this.typeormMigrationsRun,
       migrations: this.typeormMigrations,
       entities: this.typeormEntities,
     };
   }
 
-  getApiDefaultVersion() {
+  getRequestTimeoutMs(): number {
+    return this.requestTimeoutMs;
+  }
+
+  getApiDefaultVersion(): string {
     return this.configService.get<string>('API_DEFAULT_VERSION', '1');
   }
 }
