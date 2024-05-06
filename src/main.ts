@@ -6,14 +6,26 @@ import { VersioningType } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
 import { swaggerConfig, swaggerCustomOptions } from './config/swagger.config';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import helmet from 'helmet';
+import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { RateLimitInterceptor } from './common/interceptors/rate-limit.interceptor';
+import { CustomConfigService } from './config/services/config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const logger = new LoggerService(configService);
-  app.useLogger(logger);
+  const customeConfigService = app.get(CustomConfigService);
 
+  app.useLogger(logger);
+  app.use(helmet());
   app.useGlobalFilters(new HttpExceptionFilter(logger));
+  app.useGlobalInterceptors(
+    new TransformInterceptor(),
+    new TimeoutInterceptor(logger, customeConfigService),
+    new RateLimitInterceptor(logger),
+  );
   app.setGlobalPrefix('api');
   app.enableVersioning({
     type: VersioningType.URI,
@@ -28,12 +40,16 @@ async function bootstrap() {
   );
 
   const port = configService.get<number>('PORT', 3000);
-  await app.listen(port);
-  logger.log('Application is running on:', `http://localhost:${port}`, {
-    service: 'MainApplication',
-    action: 'start',
-    port,
-  });
+  try {
+    await app.listen(port);
+    logger.log('Application is running on:', `http://localhost:${port}`, {
+      service: 'MainApplication',
+      action: 'start',
+      port,
+    });
+  } catch (error) {
+    logger.error('Failed to start the application', error.stack, 'Bootstrap');
+  }
 }
 
 bootstrap();

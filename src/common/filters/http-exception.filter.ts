@@ -30,16 +30,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
       method: request.method,
-      message: message,
+      message,
       ...(process.env.NODE_ENV === 'development' && {
         stack: exception instanceof Error ? exception.stack : undefined,
       }),
     };
 
     this.logger.error(
-      'Exception caught in HttpExceptionFilter',
-      { exception, response: errorResponse },
-      'HttpExceptionFilter',
+      `Exception caught in HttpExceptionFilter for ${request.method} ${request.url}`,
+      {
+        exception,
+        response: errorResponse,
+        method: request.method,
+        url: request.url,
+      },
     );
 
     response.status(status).json(errorResponse);
