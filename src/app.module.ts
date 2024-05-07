@@ -4,11 +4,13 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 import { DatabaseModule } from './core/database/database.module';
 import { CommonModule } from './common/common.module';
 import { HealthModule } from './modules/health/health.module';
 import { UsersModule } from './modules/users/users.module';
 import configuration from './config/configuration';
+import { CustomMetricsService } from './common/services/custom-metrics.service';
 import { CustomConfigService } from './config/services/config.service';
 
 @Module({
@@ -31,7 +33,12 @@ import { CustomConfigService } from './config/services/config.service';
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: MetricsInterceptor,
+    },
     CustomConfigService,
+    CustomMetricsService,
   ],
   exports: [CustomConfigService],
 })
