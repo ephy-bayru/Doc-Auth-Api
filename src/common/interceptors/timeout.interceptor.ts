@@ -18,18 +18,12 @@ export class TimeoutInterceptor implements NestInterceptor {
     private readonly configService: CustomConfigService,
   ) {
     this.timeoutMs = +this.configService.getRequestTimeoutMs();
-    this.logger.log(`TimeoutInterceptor: Timeout set to ${this.timeoutMs}ms`);
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const method = request.method;
     const url = request.url;
-
-    // Log the timeout value
-    this.logger.log(
-      `Applying timeout of ${this.timeoutMs} ms to ${method} ${url}`,
-    );
 
     // Ensure timeoutMs is a number
     if (typeof this.timeoutMs !== 'number' || isNaN(this.timeoutMs)) {
